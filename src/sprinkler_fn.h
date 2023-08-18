@@ -34,208 +34,64 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/**
- */
 extern bool sprinkler_config_changed;
 
-/**
- * @fn void sprinkler_init(sprinkler_t **spr)
- * @brief
- *
- * @param spr
- */
 void sprinkler_init(sprinkler_t **spr);
 
-/**
- * @fn void sprinkler_deinit(sprinkler_t **spr)
- * @brief
- *
- * @param spr
- */
 void sprinkler_deinit(sprinkler_t **spr);
 
-/**
- * @fn spr_err_t sprinkler_start_cicle(sprinkler_t *spr)
- * @brief
- *
- * @param spr
- * @return
- */
 spr_err_t sprinkler_start_cicle(sprinkler_t *spr);
 
-/**
- * @fn bool sprinkler_is_start_time(sprinkler_t *spr)
- * @brief
- *
- * @param spr
- * @return
- */
 bool sprinkler_is_start_time(sprinkler_t *spr);
 
-/**
- * @fn spr_err_t sprinkler_setdt_day(sprinkler_t **spr, uint8_t id, uint8_t day, bool en)
- * @brief
- *
- * @param spr
- * @param id
- * @param day
- * @param en
- * @return
- */
-spr_err_t sprinkler_setdt_day(sprinkler_t **spr, uint8_t id, uint8_t day, bool en);
+spr_err_t sprinkler_set_dt_day(sprinkler_t **spr, uint8_t id, uint8_t day, bool en);
 
-/**
- * @fn sprinkler_setdt_hour(sprinkler_t **spr, uint8_t id, uint8_t hour, bool en)
- * @brief
- *
- * @param spr
- * @param id
- * @param hour
- * @param en
- * @return
- */
-spr_err_t sprinkler_setdt_hour(sprinkler_t **spr, uint8_t id, uint8_t hour, bool en);
+spr_err_t sprinkler_set_dt_hour(sprinkler_t **spr, uint8_t id, uint8_t hour, bool en);
 
-/**
- * @fn spr_err_t sprinkler_setdt_en(sprinkler_t **spr, uint8_t id, bool en)
- * @brief
- *
- * @param spr
- * @param id
- * @param en
- * @return
- */
-spr_err_t sprinkler_setdt_en(sprinkler_t **spr, uint8_t id, bool en);
+spr_err_t sprinkler_set_dt_en(sprinkler_t **spr, uint8_t id, bool en);
 
-/**
- * @fn spr_err_t sprinkler_setmonth_en(sprinkler_t **spr, uint8_t month, bool en)
- * @brief
- *
- * @param spr
- * @param month
- * @param en
- * @return
- */
-spr_err_t sprinkler_setmonth_en(sprinkler_t **spr, uint8_t month, bool en);
+spr_err_t sprinkler_set_dt_queue(sprinkler_t **spr, uint8_t id, uint8_t queue, bool en);
 
-/**
- * @fn spr_err_t sprinkler_setmonth_a(sprinkler_t **spr, uint8_t month, uint8_t a)
- * @brief
- *
- * @param spr
- * @param month
- * @param a
- * @return
- */
-spr_err_t sprinkler_setmonth_a(sprinkler_t **spr, uint8_t month, uint8_t a);
+spr_err_t sprinkler_set_month_en(sprinkler_t **spr, uint8_t month, bool en);
 
-/**
- * @fn spr_err_t sprinkler_setmonth_b(sprinkler_t **spr, uint8_t month, uint8_t b)
- * @brief
- *
- * @param spr
- * @param month
- * @param b
- * @return
- */
-spr_err_t sprinkler_setmonth_b(sprinkler_t **spr, uint8_t month, uint8_t b);
+spr_err_t sprinkler_set_month_a(sprinkler_t **spr, uint8_t month, uint8_t a);
 
-/**
- * @fn spr_err_t sprinkler_setmonth_dt(sprinkler_t **spr, uint8_t month, uint8_t dt)
- * @brief
- *
- * @param spr
- * @param month
- * @param dt
- * @return
- */
-spr_err_t sprinkler_setmonth_dt(sprinkler_t **spr, uint8_t month, uint8_t dt);
+spr_err_t sprinkler_set_month_b(sprinkler_t **spr, uint8_t month, uint8_t b);
 
-/**
- * @fn spr_err_t sprinkler_setrelay_en(sprinkler_t **spr, uint8_t relay, bool en)
- * @brief
- *
- * @param spr
- * @param relay
- * @param en
- * @return
- */
-spr_err_t sprinkler_setrelay_en(sprinkler_t **spr, uint8_t relay, bool en);
+spr_err_t sprinkler_set_month_dt(sprinkler_t **spr, uint8_t month, uint8_t dt);
 
-/**
- * @fn spr_err_t sprinkler_setrelay_pump(sprinkler_t **spr, uint8_t relay, bool pump)
- * @brief
- *
- * @param spr
- * @param relay
- * @param pump
- * @return
- */
-spr_err_t sprinkler_setrelay_pump(sprinkler_t **spr, uint8_t relay, bool pump);
+spr_err_t sprinkler_set_relay_en(sprinkler_t **spr, uint8_t relay, bool en);
 
-/**
- * @fn spr_err_t sprinkler_setrelay_min(sprinkler_t **spr, uint8_t relay, uint8_t min)
- * @brief
- *
- * @param spr
- * @param relay
- * @param min
- * @return
- */
-spr_err_t sprinkler_setrelay_min(sprinkler_t **spr, uint8_t relay, uint8_t min);
+spr_err_t sprinkler_set_relay_pump(sprinkler_t **spr, uint8_t relay, uint8_t pump);
 
-/**
- * @fn spr_err_t sprinkler_setrelay_gpio(sprinkler_t **spr, uint8_t relay, uint8_t gpio)
- * @brief
- *
- * @param spr
- * @param relay
- * @param gpio
- * @return
- */
-spr_err_t sprinkler_setrelay_gpio(sprinkler_t **spr, uint8_t relay, uint8_t gpio);
+spr_err_t sprinkler_set_relay_sec(sprinkler_t **spr, uint8_t relay, uint8_t min);
 
-/**
- * @fn spr_err_t sprinkler_setpause(sprinkler_t **spr, uint8_t relay, uint32_t seconds)
- * @brief
- *
- * @param spr
- * @param relay
- * @param seconds
- * @return
- */
-spr_err_t sprinkler_setpause(sprinkler_t **spr, uint8_t relay, uint32_t seconds);
+spr_err_t sprinkler_set_relay_overlap(sprinkler_t **spr, uint8_t relay, uint32_t ms);
 
-/**
- * @fn spr_err_t sprinkler_setbeforepump(sprinkler_t **spr, uint32_t ms)
- * @brief
- *
- * @param spr
- * @param ms
- * @return
- */
-spr_err_t sprinkler_setbeforepump(sprinkler_t **spr, uint32_t ms);
+spr_err_t sprinkler_set_relay_gpio(sprinkler_t **spr, uint8_t relay, uint8_t gpio);
 
-/**
- * @fn spr_err_t sprinkler_set_pump_en(sprinkler_t **spr, bool pump, bool en)
- * @brief
- *
- * @param spr
- * @param pump
- * @param en
- * @return
- */
-spr_err_t sprinkler_set_pump_en(sprinkler_t **spr, bool pump, bool en);
+spr_err_t sprinkler_set_queue(sprinkler_t **spr, uint8_t queue, uint32_t relay, bool en) ;
 
-/**
- * @fn spr_err_t sprinkler_set_pump_relay(sprinkler_t **spr, bool pump, uint8_t relay)
- * @brief
- *
- * @param spr
- * @param pump
- * @param relay
- * @return
- */
-spr_err_t sprinkler_set_pump_relay(sprinkler_t **spr, bool pump, uint8_t relay);
+spr_err_t sprinkler_set_queue_pause(sprinkler_t **spr, uint8_t queue, uint32_t seconds);
+
+spr_err_t sprinkler_set_queue_autoadv(sprinkler_t **spr, uint8_t queue, bool en);
+
+spr_err_t sprinkler_set_queue_relay_sec(sprinkler_t **spr, uint8_t queue, uint8_t relay, uint16_t seconds);
+
+spr_err_t sprinkler_set_queue_repeat(sprinkler_t **spr, uint8_t queue, uint8_t times);
+
+spr_err_t sprinkler_set_pause(sprinkler_t **spr, uint8_t relay, uint32_t seconds);
+
+spr_err_t sprinkler_set_pump_delay(sprinkler_t **spr, uint32_t ms);
+
+spr_err_t sprinkler_set_pump_en(sprinkler_t **spr, uint8_t pump, bool en);
+
+spr_err_t sprinkler_set_pump_relay(sprinkler_t **spr, uint8_t pump, uint8_t relay);
+
+bool sprinkler_is_queue_paused(void);
+
+spr_err_t sprinkler_is_queue_running(void);
+
+spr_err_t sprinkler_is_relay_running(void);
 
 #endif /* SPRINKLER_FN_H_ */

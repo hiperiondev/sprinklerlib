@@ -33,71 +33,77 @@
 
 #include <stdint.h>
 
-#define MAX_DT 32 // should never be bigger than 32
-
 /// bitwise utils
 
-#define SET_BIT(x, pos)    (x | (1U << pos))
-#define CLEAR_BIT(x, pos)  (x & (~(1U << pos)))
-#define CHECK_BIT(x, pos)  (x & (1UL << pos))
+#define SET_BIT(x,pos)    (x | (1U << pos))
+#define CLEAR_BIT(x,pos)  (x & (~(1U << pos)))
+#define CHECK_BIT(x,pos)  (x & (1UL << pos))
+#define SETMASK(b,p)      (((2UL ^ b) - 1) << p)
+#define UNSETMASK(b,p)    (~SETMASK(b,p))
 
 /// sprinkler get values
 
-#define GET_DT_EN(x)           (CHECK_BIT(x, 31))
-#define GET_DT_HOURS(x)        ((x & 0x7fffff80) >> 7)
-#define GET_DT_HOUR(x, h)      (CHECK_BIT(GET_DT_HOURS(x), h))
-#define GET_DT_DAYS(x)         (x & 0x7f)
-#define GET_DT_DAY(x, d)       (CHECK_BIT(GET_DT_DAYS(x), d))
+#define GET_DT_EN(x)            (CHECK_BIT(x, 31))
+#define GET_DT_HOURS(x)         ((x & SETMASK(24, 7)) >> 7)
+#define GET_DT_HOUR(x,h)        (CHECK_BIT(GET_DT_HOURS(x), h))
+#define GET_DT_DAYS(x)          (x & SETMASK(7,0))
+#define GET_DT_DAY(x,d)         (CHECK_BIT(GET_DT_DAYS(x), d))
 
-#define GET_RELAY_EN(x)        (CHECK_BIT(x, 7))
-#define GET_RELAY_PUMP(x)      (CHECK_BIT(x, 6))
-#define GET_RELAY_MIN(x)       (x & 0x3f)
+#define GET_RELAY_EN(x)         (CHECK_BIT(x, 15))
+#define GET_RELAY_PUMP(x)       ((x & SETMASK(3, 12)) >> 12)
+#define GET_RELAY_SEC(x)        (x & SETMASK(12, 0))
 
-#define GET_MONTH_EN(x)        (CHECK_BIT(x, 7))
-#define GET_MONTH_A(x)         (CHECK_BIT(x, 6))
-#define GET_MONTH_B(x)         (CHECK_BIT(x, 5))
-#define GET_MONTH_DT(x)        (x & 0x1f)
+#define GET_MONTH_EN(x)         (CHECK_BIT(x, 7))
+#define GET_MONTH_A(x)          (CHECK_BIT(x, 6))
+#define GET_MONTH_B(x)          (CHECK_BIT(x, 5))
+#define GET_MONTH_DT(x)         (x & SETMASK(5, 0))
 
-#define GET_PUMP1_EN(x)        (CHECK_BIT(x, 7))
-#define GET_PUMP2_EN(x)        (CHECK_BIT(x, 6))
-#define GET_PUMP1_RELAY(x)     ((x & 0x38) >> 3)
-#define GET_PUMP2_RELAY(x)     (x & 0x07)
+#define GET_PUMP_EN(x,p)        (CHECK_BIT(x, (p + 25)))
+#define GET_PUMP_RELAY(x,p)     (x & SETMASK(5, (p * 5))
 
 /// sprinkler set values
 
-#define SET_DT_EN(x, b)        x = b ? SET_BIT(x, 31) : CLEAR_BIT(x, 31)
-#define SET_DT_HOUR(x, h, b)   x = b ? SET_BIT(x, (h + 7)) : CLEAR_BIT(x, (h + 7))
-#define SET_DT_DAY(x, d, b)    x = b ? SET_BIT(x, d) : CLEAR_BIT(x, d)
+#define SET_DT_EN(x,b)          x = b ? SET_BIT(x, 31) : CLEAR_BIT(x, 31)
+#define SET_DT_HOUR(x,h,b)      x = b ? SET_BIT(x, (h + 7)) : CLEAR_BIT(x, (h + 7))
+#define SET_DT_DAY(x,d,b)       x = b ? SET_BIT(x, d) : CLEAR_BIT(x, d)
+#define SET_DT_QUEUE(x,q,b)     x = b ? SET_BIT(x, q) : CLEAR_BIT(x, q)
 
-#define SET_RELAY_EN(x,b)      x = b ? SET_BIT(x, 7) : CLEAR_BIT(x, 7)
-#define SET_RELAY_PUMP(x, b)   x = b ? SET_BIT(x, 6) : CLEAR_BIT(x, 6)
-#define SET_RELAY_MIN(x, v)    x = (x & 0xc0) | (v)
+#define SET_RELAY_EN(x,b)       x = b ? SET_BIT(x, 15) : CLEAR_BIT(x, 15)
+#define SET_RELAY_PUMP(x,v)     x = ((x & UNSETMASK(3, 12)) | (v << 12))
+#define SET_RELAY_SEC(x,v)      x = (x & UNSETMASK(12, 0)) | (v)
 
-#define SET_MONTH_EN(x, b)     x = b ? SET_BIT(x, 7) : CLEAR_BIT(x, 7)
-#define SET_MONTH_A(x, b)      x = b ? SET_BIT(x, 6) : CLEAR_BIT(x, 6)
-#define SET_MONTH_B(x, b)      x = b ? SET_BIT(x, 5) : CLEAR_BIT(x, 5)
-#define SET_MONTH_DT(x, v)     x = (x & 0xe0) | (v)
+#define SET_MONTH_EN(x,b)       x = b ? SET_BIT(x, 7) : CLEAR_BIT(x, 7)
+#define SET_MONTH_A(x,b)        x = b ? SET_BIT(x, 6) : CLEAR_BIT(x, 6)
+#define SET_MONTH_B(x,b)        x = b ? SET_BIT(x, 5) : CLEAR_BIT(x, 5)
+#define SET_MONTH_DT(x,v)       x = (x & UNSETMASK(5, 0)) | (v)
 
-#define SET_PUMP1_EN(x, b)     x = b ? SET_BIT(x, 7) : CLEAR_BIT(x, 7)
-#define SET_PUMP2_EN(x, b)     x = b ? SET_BIT(x, 6) : CLEAR_BIT(x, 6)
-#define SET_PUMP1_RELAY(x, v)  x = (x & 0xc7) | (v << 3)
-#define SET_PUMP2_RELAY(x, v)  x = (x & 0xf8) | (v)
+#define SET_PUMP_EN(x,p,b)      x = b ? SET_BIT(x, (p + 25)) : CLEAR_BIT(x, (p + 25))
+#define SET_PUMP_RELAY(x,p,v)   x = ((x & UNSETMASK(5, (p * 5))) | (v << (p * 5)))
+
+#define SET_QUEUE(x,r,b)        x = (b ? SET_BIT(x, r) : CLEAR_BIT(x, r))
+#define SET_QUEUE_AUTOADV(x,b)  x = (b ? SET_BIT(x, 31) : CLEAR_BIT(x, 31))
+#define SET_QUEUE_RSEC(x,v)     x = (x & UNSETMASK(31, 0)) | (v)
 
 /// sprinkler data types
 
 typedef enum SPRINKLER_ERROR {
-	SPR_OK,
-	SPR_FAIL
+	SPR_OK   = 0x00,
+	SPR_FAIL = 0xff
 } spr_err_t;
 
 typedef struct sprinkler_s {
-	 uint8_t pump;              // EeRRRrrr E:enabled pump1; e: enabled pump2; R: relay pump1; r relay pump2
-    uint32_t date_time[MAX_DT]; // EHHHHHHHHHHHHHHHHHHHHHHHHDDDDDDD E:enabled, H: 23-0, D:0=Mon-6=Sun
-     uint8_t relay[8];          // EPMMMMMM E:enabled; P-> 0:pump1, 1:pump2; M: minutes
-    uint32_t pause[8];          // pause to next relay (seconds)
-     uint8_t month[12];         // EABDDDDD E: enabled; A:?; B:?; D: date_time
-    uint32_t ms_before_pump;    // time enable pump before valve (milliseconds)
-     uint8_t gpio_relay[8];     // gpio of relay
+    uint32_t pump;                    // xxABCDEaaaaabbbbbcccccdddddeeeee ABCD:enabled pump5,4,3,2,1; abcde:relay pump5,4,3,2,1 x:?
+    uint32_t date_time[32];           // EHHHHHHHHHHHHHHHHHHHHHHHHDDDDDDD E:enabled, H:23-0, D:0=Mon-6=Sun
+    uint32_t date_time_queue[32];     // qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq q: enabled queue
+    uint16_t relay[32];               // EPPPMMMMMMMMMMMM E:enabled; P-> 0:pump1,2,3,4,5; M: on seconds
+    uint32_t relay_overlap;           // current relay and next relay open simultaneously for the duration specified (milliseconds)
+     uint8_t month[12];               // EABDDDDD E:enabled; A:?; B:?; D:date_time
+    uint32_t pump_delay_ms;           // delay to start pump (milliseconds)
+    uint32_t queue[32];               // rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr r:relay
+     uint8_t queue_repeat[32];        // times queue cycle repeat
+    uint16_t queue_relay_sec[32][32]; // [queue] [relay] if not 0 override relay on seconds
+    uint32_t queue_pause[32];         // asssssssssssssssssssssssssssssss a:autoadvance; s:pause to next relay (seconds)
+     uint8_t gpio_relay[32];          // gpio relay
 } sprinkler_t;
 
 #endif /* SPRINKLER_DATA_TYPES_H_ */

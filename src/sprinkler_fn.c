@@ -34,19 +34,13 @@
 #include <time.h>
 
 #include "sprinkler_data_types.h"
+#include "sprinkler_hw.h"
 #include "sprinkler_fn.h"
 
 bool sprinkler_config_changed;
-
-/// system dependent functions ///
-extern void sprinkler_wait_ms(uint32_t ms);
-extern void sprinkler_wait_seconds(uint32_t s);
-extern void sprinkler_start_relay(uint8_t relay);
-extern void sprinkler_stop_relay(uint8_t relay);
-extern void sprinkler_start_pump(bool pump);
-extern void sprinkler_stop_pump(bool pump);
-extern void sprinkler_persitence_get(sprinkler_t **spr);
-extern void sprinkler_persitence_put(sprinkler_t **spr);
+uint8_t queue_running;
+bool queue_paused;
+uint8_t relay_running;
 
 //////////////////////////////////////////////////////////////
 
@@ -54,28 +48,38 @@ void sprinkler_init(sprinkler_t **spr) {
     *spr = malloc(sizeof(struct sprinkler_s));
     sprinkler_persitence_get(spr);
     sprinkler_config_changed = false;
+    queue_paused = false;
+    queue_running = SPR_FAIL;
+    relay_running = SPR_FAIL;
 }
 
 void sprinkler_deinit(sprinkler_t **spr) {
     if (sprinkler_config_changed)
-        sprinkler_persitence_put(spr);
+        sprinkler_persitence_put(*spr);
     free(*spr);
 }
 
 spr_err_t sprinkler_start_cicle(sprinkler_t *spr) {
-    for (uint8_t relay = 0; relay < 7; relay++) {
-        if (GET_PUMP1_RELAY(spr->pump) == relay || GET_PUMP2_RELAY(spr->pump) == relay) // relay is pump
-            continue;
 
-        sprinkler_start_relay(relay);
-        sprinkler_wait_ms(spr->ms_before_pump);
-        sprinkler_start_pump(GET_RELAY_PUMP(relay));
-        sprinkler_wait_seconds(GET_RELAY_MIN(spr->relay[relay]) * 60);
+    return SPR_OK;
+}
 
-        sprinkler_stop_pump(GET_RELAY_PUMP(relay));
-        sprinkler_wait_ms(spr->ms_before_pump);
-        sprinkler_stop_relay(relay);
-    }
+spr_err_t sprinkler_queue_next(sprinkler_t *spr) {
+
+    return SPR_OK;
+}
+
+spr_err_t sprinkler_queue_previous(sprinkler_t *spr) {
+
+    return SPR_OK;
+}
+
+spr_err_t sprinkler_queue_pause(sprinkler_t *spr) {
+
+    return SPR_OK;
+}
+
+spr_err_t sprinkler_queue_resume(sprinkler_t *spr) {
 
     return SPR_OK;
 }
@@ -97,8 +101,8 @@ bool sprinkler_is_start_time(sprinkler_t *spr) {
 
 //////////////////////////////////////////////////////////////
 
-spr_err_t sprinkler_setdt_day(sprinkler_t **spr, uint8_t id, uint8_t day, bool en) {
-    if (id > MAX_DT - 1 || day > 6)
+spr_err_t sprinkler_set_dt_day(sprinkler_t **spr, uint8_t id, uint8_t day, bool en) {
+    if (id > 31 || day > 6)
         return SPR_FAIL;
 
     SET_DT_DAY((*spr)->date_time[id], day, en);
@@ -107,8 +111,8 @@ spr_err_t sprinkler_setdt_day(sprinkler_t **spr, uint8_t id, uint8_t day, bool e
     return SPR_OK;
 }
 
-spr_err_t sprinkler_setdt_hour(sprinkler_t **spr, uint8_t id, uint8_t hour, bool en) {
-    if (id > MAX_DT - 1 || hour > 23)
+spr_err_t sprinkler_set_dt_hour(sprinkler_t **spr, uint8_t id, uint8_t hour, bool en) {
+    if (id > 31 || hour > 23)
         return SPR_FAIL;
 
     SET_DT_HOUR((*spr)->date_time[id], hour, en);
@@ -117,8 +121,8 @@ spr_err_t sprinkler_setdt_hour(sprinkler_t **spr, uint8_t id, uint8_t hour, bool
     return SPR_OK;
 }
 
-spr_err_t sprinkler_setdt_en(sprinkler_t **spr, uint8_t id, bool en) {
-    if (id > MAX_DT - 1)
+spr_err_t sprinkler_set_dt_en(sprinkler_t **spr, uint8_t id, bool en) {
+    if (id > 31)
         return SPR_FAIL;
 
     SET_DT_EN((*spr)->date_time[id], en);
@@ -127,9 +131,19 @@ spr_err_t sprinkler_setdt_en(sprinkler_t **spr, uint8_t id, bool en) {
     return SPR_OK;
 }
 
+spr_err_t sprinkler_set_dt_queue(sprinkler_t **spr, uint8_t id, uint8_t queue, bool en) {
+    if (id > 31 || queue > 31)
+        return SPR_FAIL;
+
+    SET_DT_QUEUE((*spr)->date_time_queue[id], queue, en);
+
+    sprinkler_config_changed = true;
+    return SPR_OK;
+}
+
 /////////////////////
 
-spr_err_t sprinkler_setmonth_en(sprinkler_t **spr, uint8_t month, bool en) {
+spr_err_t sprinkler_set_month_en(sprinkler_t **spr, uint8_t month, bool en) {
     if (month > 11)
         return SPR_FAIL;
 
@@ -139,7 +153,7 @@ spr_err_t sprinkler_setmonth_en(sprinkler_t **spr, uint8_t month, bool en) {
     return SPR_OK;
 }
 
-spr_err_t sprinkler_setmonth_a(sprinkler_t **spr, uint8_t month, uint8_t a) {
+spr_err_t sprinkler_set_month_a(sprinkler_t **spr, uint8_t month, uint8_t a) {
     if (month > 11)
         return SPR_FAIL;
 
@@ -149,7 +163,7 @@ spr_err_t sprinkler_setmonth_a(sprinkler_t **spr, uint8_t month, uint8_t a) {
     return SPR_OK;
 }
 
-spr_err_t sprinkler_setmonth_b(sprinkler_t **spr, uint8_t month, uint8_t b) {
+spr_err_t sprinkler_set_month_b(sprinkler_t **spr, uint8_t month, uint8_t b) {
     if (month > 11)
         return SPR_FAIL;
 
@@ -159,8 +173,8 @@ spr_err_t sprinkler_setmonth_b(sprinkler_t **spr, uint8_t month, uint8_t b) {
     return SPR_OK;
 }
 
-spr_err_t sprinkler_setmonth_dt(sprinkler_t **spr, uint8_t month, uint8_t dt) {
-    if (month > 11 || dt > MAX_DT - 1)
+spr_err_t sprinkler_set_month_dt(sprinkler_t **spr, uint8_t month, uint8_t dt) {
+    if (month > 11 || dt > 31)
         return SPR_FAIL;
 
     SET_MONTH_DT((*spr)->month[month], dt);
@@ -171,8 +185,8 @@ spr_err_t sprinkler_setmonth_dt(sprinkler_t **spr, uint8_t month, uint8_t dt) {
 
 /////////////////////
 
-spr_err_t sprinkler_setrelay_en(sprinkler_t **spr, uint8_t relay, bool en) {
-    if (relay > 7)
+spr_err_t sprinkler_set_relay_en(sprinkler_t **spr, uint8_t relay, bool en) {
+    if (relay > 31)
         return SPR_FAIL;
 
     SET_RELAY_EN((*spr)->relay[relay], en);
@@ -181,8 +195,8 @@ spr_err_t sprinkler_setrelay_en(sprinkler_t **spr, uint8_t relay, bool en) {
     return SPR_OK;
 }
 
-spr_err_t sprinkler_setrelay_pump(sprinkler_t **spr, uint8_t relay, bool pump) {
-    if (relay > 7)
+spr_err_t sprinkler_set_relay_pump(sprinkler_t **spr, uint8_t relay, uint8_t pump) {
+    if (relay > 31 || pump > 4)
         return SPR_FAIL;
 
     SET_RELAY_PUMP((*spr)->relay[relay], pump);
@@ -191,18 +205,28 @@ spr_err_t sprinkler_setrelay_pump(sprinkler_t **spr, uint8_t relay, bool pump) {
     return SPR_OK;
 }
 
-spr_err_t sprinkler_setrelay_min(sprinkler_t **spr, uint8_t relay, uint8_t min) {
-    if (relay > 7 || min > 63)
+spr_err_t sprinkler_set_relay_sec(sprinkler_t **spr, uint8_t relay, uint8_t min) {
+    if (relay > 31 || min > 63)
         return SPR_FAIL;
 
-    SET_RELAY_MIN((*spr)->relay[relay], min);
+    SET_RELAY_SEC((*spr)->relay[relay], min);
 
     sprinkler_config_changed = true;
     return SPR_OK;
 }
 
-spr_err_t sprinkler_setrelay_gpio(sprinkler_t **spr, uint8_t relay, uint8_t gpio) {
-    if (relay > 7)
+spr_err_t sprinkler_set_relay_overlap(sprinkler_t **spr, uint8_t relay, uint32_t ms) {
+    if (relay > 31)
+        return SPR_FAIL;
+
+    (*spr)->relay_overlap = ms;
+
+    sprinkler_config_changed = true;
+    return SPR_OK;
+}
+
+spr_err_t sprinkler_set_relay_gpio(sprinkler_t **spr, uint8_t relay, uint8_t gpio) {
+    if (relay > 31)
         return SPR_FAIL;
 
     (*spr)->gpio_relay[relay] = gpio;
@@ -213,42 +237,96 @@ spr_err_t sprinkler_setrelay_gpio(sprinkler_t **spr, uint8_t relay, uint8_t gpio
 
 /////////////////////
 
-spr_err_t sprinkler_setpause(sprinkler_t **spr, uint8_t relay, uint32_t seconds) {
-    if (relay > 7)
+spr_err_t sprinkler_set_queue(sprinkler_t **spr, uint8_t queue, uint32_t relay, bool en) {
+    if (queue > 31 || relay > 31)
         return SPR_FAIL;
 
-    (*spr)->pause[relay] = seconds;
+    SET_QUEUE((*spr)->queue[queue], relay, en);
 
     sprinkler_config_changed = true;
     return SPR_OK;
 }
 
-spr_err_t sprinkler_setbeforepump(sprinkler_t **spr, uint32_t ms) {
-    (*spr)->ms_before_pump = ms;
-
-    sprinkler_config_changed = true;
-    return SPR_OK;
-}
-
-spr_err_t sprinkler_set_pump_en(sprinkler_t **spr, bool pump, bool en) {
-    if (pump)
-        SET_PUMP1_EN((*spr)->pump, en);
-    else
-        SET_PUMP2_EN((*spr)->pump, en);
-
-    sprinkler_config_changed = true;
-    return SPR_OK;
-}
-
-spr_err_t sprinkler_set_pump_relay(sprinkler_t **spr, bool pump, uint8_t relay) {
-    if (relay > 7)
+spr_err_t sprinkler_set_queue_pause(sprinkler_t **spr, uint8_t queue, uint32_t seconds) {
+    if (queue > 31 || seconds > (0x2UL ^ 31))
         return SPR_FAIL;
 
-    if (pump)
-        SET_PUMP1_RELAY((*spr)->pump, relay);
-    else
-        SET_PUMP2_RELAY((*spr)->pump, relay);
+    SET_QUEUE_RSEC((*spr)->queue_pause[queue], seconds);
 
     sprinkler_config_changed = true;
     return SPR_OK;
 }
+
+spr_err_t sprinkler_set_queue_autoadv(sprinkler_t **spr, uint8_t queue, bool en) {
+    if (queue > 31)
+        return SPR_FAIL;
+
+    SET_QUEUE_AUTOADV((*spr)->queue[queue], en);
+
+    sprinkler_config_changed = true;
+    return SPR_OK;
+}
+
+spr_err_t sprinkler_set_queue_relay_sec(sprinkler_t **spr, uint8_t queue, uint8_t relay, uint16_t seconds) {
+    if (queue > 31 || relay > 31)
+        return SPR_FAIL;
+
+    (*spr)->queue_relay_sec[queue][relay] = seconds;
+
+    sprinkler_config_changed = true;
+    return SPR_OK;
+}
+
+spr_err_t sprinkler_set_queue_repeat(sprinkler_t **spr, uint8_t queue, uint8_t times) {
+    if (queue > 31)
+        return SPR_FAIL;
+
+    (*spr)->queue_repeat[queue] = times;
+
+    sprinkler_config_changed = true;
+    return SPR_OK;
+}
+
+/////////////////////
+
+spr_err_t sprinkler_set_pump_delay(sprinkler_t **spr, uint32_t ms) {
+    (*spr)->pump_delay_ms = ms;
+
+    sprinkler_config_changed = true;
+    return SPR_OK;
+}
+
+spr_err_t sprinkler_set_pump_en(sprinkler_t **spr, uint8_t pump, bool en) {
+    if (pump > 4)
+        return SPR_FAIL;
+
+    SET_PUMP_EN((*spr)->pump, pump, en);
+
+    sprinkler_config_changed = true;
+    return SPR_OK;
+}
+
+spr_err_t sprinkler_set_pump_relay(sprinkler_t **spr, uint8_t pump, uint8_t relay) {
+    if (pump > 4 || relay > 31)
+        return SPR_FAIL;
+
+    SET_PUMP_RELAY((*spr)->pump, pump, relay);
+
+    sprinkler_config_changed = true;
+    return SPR_OK;
+}
+
+/////////////////////
+
+bool sprinkler_is_queue_paused(void) {
+    return queue_paused;
+}
+
+spr_err_t sprinkler_is_queue_running(void) {
+    return queue_running;
+}
+
+spr_err_t sprinkler_is_relay_running(void) {
+    return relay_running;
+}
+
