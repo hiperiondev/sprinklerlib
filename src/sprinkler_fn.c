@@ -37,10 +37,68 @@
 #include "sprinkler_hw.h"
 #include "sprinkler_fn.h"
 
+//////////////////////////////////////////////////////////////
+
+#define TO_PERSISTENCE_SEC    15 // time between persistence saves
+
+/// bitwise utils
+
+#define SET_BIT(x,pos)          (x | (1UL << pos))
+#define CLEAR_BIT(x,pos)        (x & (~(1UL << pos)))
+#define CHECK_BIT(x,pos)        (x & (1UL << pos))
+#define SETMASK(b,p)            (((2UL ^ b) - 1) << p)
+#define UNSETMASK(b,p)          (~SETMASK(b,p))
+
+/// sprinkler get values
+
+#define GET_DT_EN(x)            (CHECK_BIT(x, 31))
+#define GET_DT_HOURS(x)         ((x & SETMASK(24, 7)) >> 7)
+#define GET_DT_HOUR(x,h)        (CHECK_BIT(GET_DT_HOURS(x), h))
+#define GET_DT_DAYS(x)          (x & SETMASK(7,0))
+#define GET_DT_DAY(x,d)         (CHECK_BIT(GET_DT_DAYS(x), d))
+
+#define GET_RELAY_EN(x)         (CHECK_BIT(x, 15))
+#define GET_RELAY_PUMP(x)       ((x & SETMASK(3, 12)) >> 12)
+#define GET_RELAY_SEC(x)        (x & SETMASK(12, 0))
+
+#define GET_MONTH_EN(x)         (CHECK_BIT(x, 7))
+#define GET_MONTH_A(x)          (CHECK_BIT(x, 6))
+#define GET_MONTH_B(x)          (CHECK_BIT(x, 5))
+#define GET_MONTH_DT(x)         (x & SETMASK(5, 0))
+
+#define GET_PUMP_EN(x,p)        (CHECK_BIT(x, (p + 25)))
+#define GET_PUMP_RELAY(x,p)     (x & SETMASK(5, (p * 5))
+
+/// sprinkler set values
+
+#define SET_DT_EN(x,b)          x = b ? SET_BIT(x, 31) : CLEAR_BIT(x, 31)
+#define SET_DT_HOUR(x,h,b)      x = b ? SET_BIT(x, (h + 7)) : CLEAR_BIT(x, (h + 7))
+#define SET_DT_DAY(x,d,b)       x = b ? SET_BIT(x, d) : CLEAR_BIT(x, d)
+#define SET_DT_QUEUE(x,q,b)     x = b ? SET_BIT(x, q) : CLEAR_BIT(x, q)
+
+#define SET_RELAY_EN(x,b)       x = b ? SET_BIT(x, 15) : CLEAR_BIT(x, 15)
+#define SET_RELAY_PUMP(x,v)     x = ((x & UNSETMASK(3, 12)) | (v << 12))
+#define SET_RELAY_SEC(x,v)      x = (x & UNSETMASK(12, 0)) | (v)
+
+#define SET_MONTH_EN(x,b)       x = b ? SET_BIT(x, 7) : CLEAR_BIT(x, 7)
+#define SET_MONTH_A(x,b)        x = b ? SET_BIT(x, 6) : CLEAR_BIT(x, 6)
+#define SET_MONTH_B(x,b)        x = b ? SET_BIT(x, 5) : CLEAR_BIT(x, 5)
+#define SET_MONTH_DT(x,v)       x = (x & UNSETMASK(5, 0)) | (v)
+
+#define SET_PUMP_EN(x,p,b)      x = b ? SET_BIT(x, (p + 25)) : CLEAR_BIT(x, (p + 25))
+#define SET_PUMP_RELAY(x,p,v)   x = ((x & UNSETMASK(5, (p * 5))) | (v << (p * 5)))
+
+#define SET_QUEUE(x,r,b)        x = (b ? SET_BIT(x, r) : CLEAR_BIT(x, r))
+#define SET_QUEUE_AUTOADV(x,b)  x = (b ? SET_BIT(x, 31) : CLEAR_BIT(x, 31))
+#define SET_QUEUE_RSEC(x,v)     x = (x & UNSETMASK(31, 0)) | (v)
+
+//////////////////////////////////////////////////////////////
+
 bool sprinkler_config_changed;
-uint8_t queue_running;
+uint32_t queue_running;
 bool queue_paused;
 uint8_t relay_running;
+bool stop_main_loop;
 
 //////////////////////////////////////////////////////////////
 
@@ -49,8 +107,9 @@ void sprinkler_init(sprinkler_t **spr) {
     sprinkler_persitence_get(spr);
     sprinkler_config_changed = false;
     queue_paused = false;
-    queue_running = SPR_FAIL;
-    relay_running = SPR_FAIL;
+    stop_main_loop = false;
+    queue_running = 0;
+    relay_running = 0;
 }
 
 void sprinkler_deinit(sprinkler_t **spr) {
@@ -59,7 +118,14 @@ void sprinkler_deinit(sprinkler_t **spr) {
     free(*spr);
 }
 
-spr_err_t sprinkler_start_cicle(sprinkler_t *spr) {
+spr_err_t sprinkler_main_loop(sprinkler_t *spr) {
+    while (!stop_main_loop) {
+        if (!sprinkler_is_start_time(spr)) {
+            sprinkler_wait_ms(1);
+            continue;
+        }
+
+    }
 
     return SPR_OK;
 }
@@ -96,7 +162,12 @@ bool sprinkler_is_start_time(sprinkler_t *spr) {
     SET_DT_HOUR(start_time, timeinfo.tm_hour, true);
     SET_DT_DAY(start_time, timeinfo.tm_wday, true);
 
-    return (GET_MONTH_EN(spr->month[timeinfo.tm_mon]) && ((spr->date_time[GET_MONTH_DT(spr->month[timeinfo.tm_mon])] & start_time) == start_time));
+   return ((GET_MONTH_EN(spr->month[timeinfo.tm_mon]))
+            && ((spr->date_time[GET_MONTH_DT(spr->month[timeinfo.tm_mon])] & start_time) == start_time)
+#ifdef ALLOW_MIN_PRECISION
+            && timeinfo.tm_min == spr->date_time_min[GET_MONTH_DT(spr->month[timeinfo.tm_mon])][GET_DT_DAY(spr->date_time[GET_MONTH_DT(spr->month[timeinfo.tm_mon])], timeinfo.tm_wday)]
+#endif
+          );
 }
 
 //////////////////////////////////////////////////////////////
@@ -219,7 +290,7 @@ spr_err_t sprinkler_set_relay_overlap(sprinkler_t **spr, uint8_t relay, uint32_t
     if (relay > 31)
         return SPR_FAIL;
 
-    (*spr)->relay_overlap = ms;
+    (*spr)->relay_overlap_ms = ms;
 
     sprinkler_config_changed = true;
     return SPR_OK;
@@ -322,11 +393,11 @@ bool sprinkler_is_queue_paused(void) {
     return queue_paused;
 }
 
-spr_err_t sprinkler_is_queue_running(void) {
+uint32_t sprinkler_is_queue_running(void) {
     return queue_running;
 }
 
-spr_err_t sprinkler_is_relay_running(void) {
+uint32_t sprinkler_is_relay_running(void) {
     return relay_running;
 }
 

@@ -33,56 +33,7 @@
 
 #include <stdint.h>
 
-/// bitwise utils
-
-#define SET_BIT(x,pos)    (x | (1U << pos))
-#define CLEAR_BIT(x,pos)  (x & (~(1U << pos)))
-#define CHECK_BIT(x,pos)  (x & (1UL << pos))
-#define SETMASK(b,p)      (((2UL ^ b) - 1) << p)
-#define UNSETMASK(b,p)    (~SETMASK(b,p))
-
-/// sprinkler get values
-
-#define GET_DT_EN(x)            (CHECK_BIT(x, 31))
-#define GET_DT_HOURS(x)         ((x & SETMASK(24, 7)) >> 7)
-#define GET_DT_HOUR(x,h)        (CHECK_BIT(GET_DT_HOURS(x), h))
-#define GET_DT_DAYS(x)          (x & SETMASK(7,0))
-#define GET_DT_DAY(x,d)         (CHECK_BIT(GET_DT_DAYS(x), d))
-
-#define GET_RELAY_EN(x)         (CHECK_BIT(x, 15))
-#define GET_RELAY_PUMP(x)       ((x & SETMASK(3, 12)) >> 12)
-#define GET_RELAY_SEC(x)        (x & SETMASK(12, 0))
-
-#define GET_MONTH_EN(x)         (CHECK_BIT(x, 7))
-#define GET_MONTH_A(x)          (CHECK_BIT(x, 6))
-#define GET_MONTH_B(x)          (CHECK_BIT(x, 5))
-#define GET_MONTH_DT(x)         (x & SETMASK(5, 0))
-
-#define GET_PUMP_EN(x,p)        (CHECK_BIT(x, (p + 25)))
-#define GET_PUMP_RELAY(x,p)     (x & SETMASK(5, (p * 5))
-
-/// sprinkler set values
-
-#define SET_DT_EN(x,b)          x = b ? SET_BIT(x, 31) : CLEAR_BIT(x, 31)
-#define SET_DT_HOUR(x,h,b)      x = b ? SET_BIT(x, (h + 7)) : CLEAR_BIT(x, (h + 7))
-#define SET_DT_DAY(x,d,b)       x = b ? SET_BIT(x, d) : CLEAR_BIT(x, d)
-#define SET_DT_QUEUE(x,q,b)     x = b ? SET_BIT(x, q) : CLEAR_BIT(x, q)
-
-#define SET_RELAY_EN(x,b)       x = b ? SET_BIT(x, 15) : CLEAR_BIT(x, 15)
-#define SET_RELAY_PUMP(x,v)     x = ((x & UNSETMASK(3, 12)) | (v << 12))
-#define SET_RELAY_SEC(x,v)      x = (x & UNSETMASK(12, 0)) | (v)
-
-#define SET_MONTH_EN(x,b)       x = b ? SET_BIT(x, 7) : CLEAR_BIT(x, 7)
-#define SET_MONTH_A(x,b)        x = b ? SET_BIT(x, 6) : CLEAR_BIT(x, 6)
-#define SET_MONTH_B(x,b)        x = b ? SET_BIT(x, 5) : CLEAR_BIT(x, 5)
-#define SET_MONTH_DT(x,v)       x = (x & UNSETMASK(5, 0)) | (v)
-
-#define SET_PUMP_EN(x,p,b)      x = b ? SET_BIT(x, (p + 25)) : CLEAR_BIT(x, (p + 25))
-#define SET_PUMP_RELAY(x,p,v)   x = ((x & UNSETMASK(5, (p * 5))) | (v << (p * 5)))
-
-#define SET_QUEUE(x,r,b)        x = (b ? SET_BIT(x, r) : CLEAR_BIT(x, r))
-#define SET_QUEUE_AUTOADV(x,b)  x = (b ? SET_BIT(x, 31) : CLEAR_BIT(x, 31))
-#define SET_QUEUE_RSEC(x,v)     x = (x & UNSETMASK(31, 0)) | (v)
+#define ALLOW_MIN_PRECISION // allow minutes precision
 
 /// sprinkler data types
 
@@ -94,9 +45,12 @@ typedef enum SPRINKLER_ERROR {
 typedef struct sprinkler_s {
     uint32_t pump;                    // xxABCDEaaaaabbbbbcccccdddddeeeee ABCD:enabled pump5,4,3,2,1; abcde:relay pump5,4,3,2,1 x:?
     uint32_t date_time[32];           // EHHHHHHHHHHHHHHHHHHHHHHHHDDDDDDD E:enabled, H:23-0, D:0=Mon-6=Sun
+#ifdef ALLOW_MIN_PRECISION
+     uint8_t date_time_min[32][24];   // minutes of every hour
+#endif
     uint32_t date_time_queue[32];     // qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq q: enabled queue
     uint16_t relay[32];               // EPPPMMMMMMMMMMMM E:enabled; P-> 0:pump1,2,3,4,5; M: on seconds
-    uint32_t relay_overlap;           // current relay and next relay open simultaneously for the duration specified (milliseconds)
+    uint32_t relay_overlap_ms;        // current relay and next relay open simultaneously for the duration specified (milliseconds)
      uint8_t month[12];               // EABDDDDD E:enabled; A:?; B:?; D:date_time
     uint32_t pump_delay_ms;           // delay to start pump (milliseconds)
     uint32_t queue[32];               // rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr r:relay

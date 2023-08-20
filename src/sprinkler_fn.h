@@ -34,13 +34,11 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-extern bool sprinkler_config_changed;
-
 void sprinkler_init(sprinkler_t **spr);
 
 void sprinkler_deinit(sprinkler_t **spr);
 
-spr_err_t sprinkler_start_cicle(sprinkler_t *spr);
+spr_err_t sprinkler_main_loop(sprinkler_t *spr);
 
 bool sprinkler_is_start_time(sprinkler_t *spr);
 
@@ -90,8 +88,8 @@ spr_err_t sprinkler_set_pump_relay(sprinkler_t **spr, uint8_t pump, uint8_t rela
 
 bool sprinkler_is_queue_paused(void);
 
-spr_err_t sprinkler_is_queue_running(void);
+uint32_t sprinkler_is_queue_running(void);
 
-spr_err_t sprinkler_is_relay_running(void);
+uint32_t sprinkler_is_relay_running(void);
 
 #endif /* SPRINKLER_FN_H_ */
