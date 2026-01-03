@@ -512,7 +512,9 @@ spr_err_t sprinkler_main_loop(sprinkler_t *spr) {
 
     bool is_start = sprinkler_is_start_time(spr);
 #ifdef ALLOW_MIN_PRECISION
-    if (is_start) { // Trigger whenever current time matches for minute precision to avoid misses
+    static int last_minute = -1;
+    int current_minute = timeinfo.tm_min;
+    if (current_minute != last_minute && is_start) {
 #else
     static int last_hour = -1;
     int current_hour = timeinfo.tm_hour;
@@ -527,7 +529,9 @@ spr_err_t sprinkler_main_loop(sprinkler_t *spr) {
             }
         }
     }
-#ifndef ALLOW_MIN_PRECISION
+#ifdef ALLOW_MIN_PRECISION
+    last_minute = current_minute;
+#else
     last_hour = current_hour;
 #endif
     static uint32_t last_persist_time = 0;
