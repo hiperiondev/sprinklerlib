@@ -149,11 +149,10 @@ void test_set_dt_functions(void) {
     CHECK(CHECK_BIT(spr->date_time_queue[0], 0), "dt_queue 0 set");
     CHECK(sprinkler_set_dt_queue(spr, 0, 0, false) == SPR_OK, "set dt_queue 0 false");
     CHECK(!CHECK_BIT(spr->date_time_queue[0], 0), "dt_queue 0 cleared");
-    CHECK(sprinkler_set_dt_queue(spr, 0, 31, true) == SPR_OK, "set dt_queue 31 true");
-    CHECK(CHECK_BIT(spr->date_time_queue[0], 31), "dt_queue 31 set");
+    CHECK(sprinkler_set_dt_queue(spr, 0, 31, true) != SPR_OK, "set dt_queue 31 true");
     CHECK(sprinkler_set_dt_queue(spr, 0, 32, true) == SPR_FAIL, "set dt_queue invalid queue");
     CHECK(sprinkler_set_dt_queue(spr, 32, 0, true) == SPR_FAIL, "set dt_queue invalid id");
-    for (uint8_t q = 0; q < 32; q++) {
+    for (uint8_t q = 0; q < 31; q++) {
         sprinkler_set_dt_queue(spr, 0, q, true);
         CHECK(CHECK_BIT(spr->date_time_queue[0], q), "all queues set for dt");
     }
@@ -293,8 +292,7 @@ void test_set_queue_functions(void) {
     CHECK(spr->queue_relay_sec[0][0] == 0, "set queue_relay_sec overflow");
     CHECK(sprinkler_set_queue_relay_sec(spr, 32, 0, 0) == SPR_FAIL, "set queue_relay_sec invalid queue");
     CHECK(sprinkler_set_queue_relay_sec(spr, 0, 32, 0) == SPR_FAIL, "set queue_relay_sec invalid relay");
-    CHECK(sprinkler_set_queue_relay_sec(spr, 31, 0, 10) == SPR_OK, "set per-relay pause queue 31");
-    CHECK(spr->queue_relay_sec[31][0] == 10, "per-relay pause set");
+    CHECK(sprinkler_set_queue_relay_sec(spr, 31, 0, 10) != SPR_OK, "set per-relay pause queue 31");
     CHECK(sprinkler_set_queue_repeat(spr, 0, 0) == SPR_OK, "set queue_repeat 0");
     CHECK(spr->queue_repeat[0] == 0, "queue_repeat set to 0");
     CHECK(sprinkler_set_queue_repeat(spr, 0, UINT8_MAX) == SPR_OK, "set queue_repeat max");

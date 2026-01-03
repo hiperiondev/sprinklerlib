@@ -237,6 +237,9 @@ spr_err_t sprinkler_set_dt_en(sprinkler_t *spr, uint8_t id, bool en) {
 }
 
 spr_err_t sprinkler_set_dt_queue(sprinkler_t *spr, uint8_t id, uint8_t queue, bool en) {
+    if (queue == 31) {
+        return SPR_ERR_PARAM;
+    }
     if (id > 31)
         return SPR_FAIL;
 
@@ -334,6 +337,11 @@ spr_err_t sprinkler_set_relay_overlap(sprinkler_t *spr, uint8_t relay, uint32_t 
     if (relay > 31)
         return SPR_FAIL;
 
+    uint32_t max_ms = (uint32_t) GET_RELAY_MIN(spr->relay[relay]) * 30000UL;
+    if (ms > max_ms) {
+        return SPR_ERR_RANGE;
+    }
+
     spr->relay_overlap_ms[relay] = ms;
     spr->sprinkler_config_changed = true;
 
@@ -353,6 +361,9 @@ spr_err_t sprinkler_set_relay_gpio(sprinkler_t *spr, uint8_t relay, uint8_t gpio
 /////////////////////
 
 spr_err_t sprinkler_set_queue(sprinkler_t *spr, uint8_t queue, uint32_t relay, bool en) {
+    if (queue == 31) {
+        return SPR_ERR_PARAM;
+    }
     if (queue >= 32 || relay >= 32) {
         return SPR_FAIL;
     }
@@ -364,6 +375,9 @@ spr_err_t sprinkler_set_queue(sprinkler_t *spr, uint8_t queue, uint32_t relay, b
 }
 
 spr_err_t sprinkler_set_queue_pause(sprinkler_t *spr, uint8_t queue, uint32_t seconds) {
+    if (queue == 31) {
+        return SPR_ERR_PARAM;
+    }
     if (queue >= 32) {
         return SPR_FAIL;
     }
@@ -376,6 +390,9 @@ spr_err_t sprinkler_set_queue_pause(sprinkler_t *spr, uint8_t queue, uint32_t se
 }
 
 spr_err_t sprinkler_set_queue_autoadv(sprinkler_t *spr, uint8_t queue, bool en) {
+    if (queue == 31) {
+        return SPR_ERR_PARAM;
+    }
     if (queue >= 32) {
         return SPR_FAIL;
     }
@@ -387,6 +404,9 @@ spr_err_t sprinkler_set_queue_autoadv(sprinkler_t *spr, uint8_t queue, bool en) 
 }
 
 spr_err_t sprinkler_set_queue_relay_sec(sprinkler_t *spr, uint8_t queue, uint8_t relay, uint16_t seconds) {
+    if (queue == 31) {
+        return SPR_ERR_PARAM;
+    }
     if (queue > 31 || relay > 31)
         return SPR_FAIL;
 
@@ -679,7 +699,6 @@ spr_err_t sprinkler_main_loop(sprinkler_t *spr) {
                 uint32_t intended_start = spr->queue_relay_end_times[current_queue][relay] - overlap_sec;
                 if (TIME_AFTER_OR_EQ(now, intended_start)) {
                     uint8_t next_idx = relay + 1;
-
                     while (next_idx < 32 && !(queue_mask & (1UL << next_idx)))
                         next_idx++;
                     if (next_idx < 32 && GET_RELAY_EN(spr->relay[next_idx])) {
@@ -691,7 +710,7 @@ spr_err_t sprinkler_main_loop(sprinkler_t *spr) {
                         if (next_duration_sec > 0) {
                             uint8_t next_pump = GET_RELAY_PUMP(spr->relay[next_relay]);
                             if (start_pump_if_needed(spr, next_pump, now) == SPR_OK) {
-                                spr->queue_relay_end_times[current_queue][next_relay] = intended_start + next_duration_sec;
+                                spr->queue_relay_end_times[current_queue][next_relay] = (now > intended_start ? now : intended_start) + next_duration_sec;
                                 if ((spr->relay_running & (1UL << next_relay)) == 0) {
                                     sprinkler_start_relay(spr->gpio_relay[next_relay]);
                                     spr->relay_running |= (1UL << next_relay);
