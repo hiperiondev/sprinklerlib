@@ -91,9 +91,9 @@
 #define GET_QUEUE_AUTOADV(x)    CHECK_BIT((x), 31)
 
 // Wrap-safe time comparison macros
-#define TIME_BEFORE(a, b)       ((int32_t)((a) - (b)) < 0)
-#define TIME_AFTER(a, b)        ((int32_t)((a) - (b)) > 0)
-#define TIME_AFTER_OR_EQ(a, b)  ((int32_t)((a) - (b)) >= 0)
+#define TIME_BEFORE(a, b)       ((((a) - (b)) & 0x80000000U) != 0)
+#define TIME_AFTER(a, b)        (TIME_BEFORE((b), (a)))
+#define TIME_AFTER_OR_EQ(a, b)  ((((a) - (b)) & 0x80000000U) == 0)
 
 /**
  * @brief Retrieves the current system time in both structured (tm) and Unix timestamp formats.
