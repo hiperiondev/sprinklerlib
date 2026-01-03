@@ -580,7 +580,7 @@ spr_err_t sprinkler_main_loop(sprinkler_t *spr) {
         while (idx < 32 && !(queue_mask & (1UL << idx)))
             idx++;
         if (idx >= 32) {
-            if (spr->queue_repeat[current_queue] == 0 || ++spr->repeat_count[current_queue] >= spr->queue_repeat[current_queue]) {
+            if (spr->queue_repeat[current_queue] == 0 || ++spr->repeat_count[current_queue] > spr->queue_repeat[current_queue]) {
                 spr->queue_running &= ~(1UL << current_queue);
                 spr->repeat_count[current_queue] = 0;
             }
@@ -684,18 +684,18 @@ spr_err_t sprinkler_main_loop(sprinkler_t *spr) {
                         next_idx++;
                     if (next_idx < 32 && GET_RELAY_EN(spr->relay[next_idx])) {
                         uint8_t next_relay = next_idx;
-                        uint8_t next_pump = GET_RELAY_PUMP(spr->relay[next_relay]);
-                        if (start_pump_if_needed(spr, next_pump, now) == SPR_OK) {
-                            uint32_t next_duration_sec = (uint32_t) GET_RELAY_MIN(spr->relay[next_relay]) * 60UL;
-                            uint16_t next_override = spr->queue_relay_sec[current_queue][next_relay];
-                            if (next_override > 0)
-                                next_duration_sec = next_override;
-                            if (next_duration_sec == 0)
-                                next_duration_sec = 60;
-                            spr->queue_relay_end_times[current_queue][next_relay] = intended_start + next_duration_sec;
-                            if ((spr->relay_running & (1UL << next_relay)) == 0) {
-                                sprinkler_start_relay(spr->gpio_relay[next_relay]);
-                                spr->relay_running |= (1UL << next_relay);
+                        uint32_t next_duration_sec = (uint32_t) GET_RELAY_MIN(spr->relay[next_relay]) * 60UL;
+                        uint16_t next_override = spr->queue_relay_sec[current_queue][next_relay];
+                        if (next_override > 0)
+                            next_duration_sec = next_override;
+                        if (next_duration_sec > 0) {
+                            uint8_t next_pump = GET_RELAY_PUMP(spr->relay[next_relay]);
+                            if (start_pump_if_needed(spr, next_pump, now) == SPR_OK) {
+                                spr->queue_relay_end_times[current_queue][next_relay] = intended_start + next_duration_sec;
+                                if ((spr->relay_running & (1UL << next_relay)) == 0) {
+                                    sprinkler_start_relay(spr->gpio_relay[next_relay]);
+                                    spr->relay_running |= (1UL << next_relay);
+                                }
                             }
                         }
                     }
