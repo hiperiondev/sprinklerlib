@@ -511,21 +511,13 @@ spr_err_t sprinkler_main_loop(sprinkler_t *spr) {
     }
 
     bool is_start = sprinkler_is_start_time(spr);
-#ifndef ALLOW_MIN_PRECISION
-    static bool last_start = false;
-#endif
-    static uint32_t last_persist_time = 0;
-    if (spr->sprinkler_config_changed && TIME_AFTER_OR_EQ(now, last_persist_time + TO_PERSISTENCE_SEC)) {
-        if (sprinkler_persitence_put(spr) == SPR_OK) {
-            spr->sprinkler_config_changed = false;
-            last_persist_time = now;
-        }
-    }
 #ifdef ALLOW_MIN_PRECISION
     if (is_start) { // Trigger whenever current time matches for minute precision to avoid misses
 #else
-    if (is_start && !last_start) { // Original edge detection for hour precision
-    #endif
+    static int last_hour = -1;
+    int current_hour = timeinfo.tm_hour;
+    if (current_hour != last_hour && is_start) {
+#endif
         uint8_t dt_id = GET_MONTH_DT(spr->month[timeinfo.tm_mon]);
         if (GET_DT_EN(spr->date_time[dt_id])) {
             for (uint8_t q = 0; q < 32; ++q) {
@@ -536,8 +528,15 @@ spr_err_t sprinkler_main_loop(sprinkler_t *spr) {
         }
     }
 #ifndef ALLOW_MIN_PRECISION
-    last_start = is_start;
+    last_hour = current_hour;
 #endif
+    static uint32_t last_persist_time = 0;
+    if (spr->sprinkler_config_changed && TIME_AFTER_OR_EQ(now, last_persist_time + TO_PERSISTENCE_SEC)) {
+        if (sprinkler_persitence_put(spr) == SPR_OK) {
+            spr->sprinkler_config_changed = false;
+            last_persist_time = now;
+        }
+    }
     for (uint8_t p = 0; p < 5; p++) {
         if (spr->pump_start_times[p] != 0 && TIME_AFTER_OR_EQ(now, spr->pump_start_times[p])) {
             uint8_t pump_relay = GET_PUMP_RELAY(spr->pump, p);
